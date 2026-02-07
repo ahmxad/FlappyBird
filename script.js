@@ -2,8 +2,8 @@
 
 const config = {
   type: Phaser.AUTO,
-  width: 400,
-  height: 600,
+  width: window.innerWidth,
+  height: window.innerHeight,
   parent: "game-container",
   physics: {
     default: "arcade",
@@ -123,69 +123,60 @@ function createPipeCapGraphics(scene) {
 
 function createBackgroundGraphics(scene) {
   const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
+  const width = scene.scale.width;
+  const height = scene.scale.height;
 
   // Sky gradient (from top to bottom)
-  const skyGradient = graphics.createGeometryMask();
-  graphics.fillGradientStyle(0x87ceeb, 0x87ceeb, 0x4ecdc4, 0x4ecdc4, 1);
-  graphics.fillRect(0, 0, 400, 450);
+  // Sky (Simple blue)
+  graphics.fillStyle(0x87ceeb, 1);
+  graphics.fillRect(0, 0, width, height);
 
-  // Actually create simple sky
-  graphics.fillStyle(0x70c5ce, 1);
-  graphics.fillRect(0, 0, 400, 600);
+  // Sun
+  graphics.fillStyle(0xffff00, 1); // Bright yellow
+  graphics.fillCircle(width - 100, 100, 40);
 
-  // Clouds
-  graphics.fillStyle(0xffffff, 0.8);
-  graphics.fillCircle(80, 80, 30);
-  graphics.fillCircle(110, 70, 40);
-  graphics.fillCircle(140, 80, 30);
+  // Sun glow/rays
+  graphics.fillStyle(0xffff00, 0.3);
+  graphics.fillCircle(width - 100, 100, 60);
+  graphics.fillStyle(0xffff00, 0.1);
+  graphics.fillCircle(width - 100, 100, 80);
 
-  graphics.fillCircle(280, 120, 25);
-  graphics.fillCircle(305, 110, 35);
-  graphics.fillCircle(330, 120, 25);
+  // Distant hills / Bushes
+  graphics.fillStyle(0x2ecc71, 0.8); // Darker green, higher opacity
+  for (let i = 0; i < width; i += 200) {
+    graphics.fillCircle(i, height - 30, 150);
+  }
 
-  graphics.fillCircle(50, 200, 20);
-  graphics.fillCircle(75, 190, 30);
-  graphics.fillCircle(100, 200, 20);
-
-  graphics.fillCircle(320, 250, 22);
-  graphics.fillCircle(345, 240, 28);
-  graphics.fillCircle(370, 250, 22);
-
-  // Distant hills
-  graphics.fillStyle(0x90ee90, 0.5);
-  graphics.fillCircle(60, 500, 100);
-  graphics.fillCircle(180, 520, 120);
-  graphics.fillCircle(320, 500, 110);
-
-  graphics.generateTexture("background", 400, 600);
+  graphics.generateTexture("background", width, height);
   graphics.destroy();
 }
 
 function createGroundGraphics(scene) {
   const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
+  const width = scene.scale.width;
 
   // Ground base (brown)
   graphics.fillStyle(0xdeb887, 1);
-  graphics.fillRect(0, 0, 400, 80);
+  graphics.fillRect(0, 0, width, 80);
 
   // Grass top
   graphics.fillStyle(0x7cfc00, 1);
-  graphics.fillRect(0, 0, 400, 15);
+  graphics.fillRect(0, 0, width, 15);
 
   // Grass detail
   graphics.fillStyle(0x32cd32, 1);
-  for (let i = 0; i < 400; i += 10) {
+  for (let i = 0; i < width; i += 10) {
     graphics.fillTriangle(i, 15, i + 5, 0, i + 10, 15);
   }
 
   // Dirt texture
   graphics.fillStyle(0xcd853f, 0.5);
-  for (let i = 0; i < 400; i += 30) {
+  for (let i = 0; i < width; i += 30) {
     graphics.fillCircle(i + 15, 40, 8);
     graphics.fillCircle(i + 5, 60, 6);
   }
 
-  graphics.generateTexture("ground", 400, 80);
+  graphics.generateTexture("ground", width, 80);
   graphics.destroy();
 }
 
@@ -200,21 +191,21 @@ function preload() {
 
 function create() {
   // Add background
-  background = this.add.image(200, 300, "background");
+  background = this.add.image(this.scale.width / 2, this.scale.height / 2, "background");
 
   // Create ground
-  ground = this.add.tileSprite(200, 560, 400, 80, "ground");
+  ground = this.add.tileSprite(this.scale.width / 2, this.scale.height - 40, this.scale.width, 80, "ground");
 
   // Create physics ground (invisible)
-  const groundPhysics = this.add.rectangle(200, 580, 400, 40, 0x000000, 0);
+  const groundPhysics = this.add.rectangle(this.scale.width / 2, this.scale.height - 20, this.scale.width, 40, 0x000000, 0);
   this.physics.add.existing(groundPhysics, true);
 
   // Create ceiling (invisible)
-  const ceiling = this.add.rectangle(200, -20, 400, 40, 0x000000, 0);
+  const ceiling = this.add.rectangle(this.scale.width / 2, -20, this.scale.width, 40, 0x000000, 0);
   this.physics.add.existing(ceiling, true);
 
   // Create bird
-  bird = this.physics.add.sprite(100, 300, "bird");
+  bird = this.physics.add.sprite(this.scale.width / 3, this.scale.height / 2, "bird");
   bird.setScale(0.8);
   bird.setCollideWorldBounds(false);
   bird.body.allowGravity = false;
@@ -225,7 +216,7 @@ function create() {
 
   // Score display
   scoreText = this.add
-    .text(200, 50, "0", {
+    .text(this.scale.width / 2, 50, "0", {
       fontSize: "64px",
       fontFamily: "Arial Black",
       fill: "#FFFFFF",
@@ -237,7 +228,7 @@ function create() {
 
   // High score display
   highScoreText = this.add
-    .text(200, 100, `Best: ${highScore}`, {
+    .text(this.scale.width / 2, 100, `Best: ${highScore}`, {
       fontSize: "24px",
       fontFamily: "Arial",
       fill: "#FFFFFF",
@@ -249,7 +240,7 @@ function create() {
 
   // Start text
   startText = this.add
-    .text(200, 350, "Click or Press SPACE\nto Start", {
+    .text(this.scale.width / 2, this.scale.height / 2 + 50, "Click or Press SPACE\nto Start", {
       fontSize: "28px",
       fontFamily: "Arial",
       fill: "#FFFFFF",
@@ -262,7 +253,7 @@ function create() {
 
   // Game over text (hidden initially)
   gameOverText = this.add
-    .text(200, 250, "GAME OVER", {
+    .text(this.scale.width / 2, this.scale.height / 2 - 50, "GAME OVER", {
       fontSize: "48px",
       fontFamily: "Arial Black",
       fill: "#FF0000",
@@ -275,7 +266,7 @@ function create() {
 
   // Restart text (hidden initially)
   restartText = this.add
-    .text(200, 350, "Click or Press SPACE\nto Restart", {
+    .text(this.scale.width / 2, this.scale.height / 2 + 50, "Click or Press SPACE\nto Restart", {
       fontSize: "24px",
       fontFamily: "Arial",
       fill: "#FFFFFF",
@@ -289,7 +280,7 @@ function create() {
 
   // Pause button
   pauseButton = this.add
-    .text(370, 20, "⏸️", {
+    .text(this.scale.width - 40, 40, "⏸️", {
       fontSize: "32px",
     })
     .setOrigin(0.5)
@@ -306,7 +297,7 @@ function create() {
   );
 
   pauseText = this.add
-    .text(200, 300, "PAUSED\n\nPress P or click ⏸️ to resume", {
+    .text(this.scale.width / 2, this.scale.height / 2, "PAUSED\n\nPress P or click ⏸️ to resume", {
       fontSize: "24px",
       fontFamily: "Arial",
       fill: "#FFFFFF",
@@ -404,7 +395,7 @@ function startGame() {
 
   // Start spawning pipes
   pipeTimer = this.time.addEvent({
-    delay: 1500,
+    delay: 2000,
     callback: spawnPipes,
     callbackScope: this,
     loop: true,
@@ -419,13 +410,13 @@ function spawnPipes() {
 
   const gapSize = 175;
   const minHeight = 80;
-  const maxHeight = 350;
+  const maxHeight = this.scale.height - 250;
   const gapPosition = Phaser.Math.Between(minHeight + gapSize / 2, maxHeight);
-  const pipeSpeed = -120;
+  const pipeSpeed = -200;
 
   // Top pipe
   const topPipeHeight = gapPosition - gapSize / 2;
-  const topPipe = this.add.container(420, 0);
+  const topPipe = this.add.container(this.scale.width + 100, 0);
 
   // Pipe body
   const topPipeBody = this.add.image(0, topPipeHeight / 2, "pipe");
@@ -446,8 +437,8 @@ function spawnPipes() {
 
   // Bottom pipe
   const bottomPipeY = gapPosition + gapSize / 2;
-  const bottomPipeHeight = 520 - bottomPipeY;
-  const bottomPipe = this.add.container(420, bottomPipeY);
+  const bottomPipeHeight = this.scale.height - 80 - bottomPipeY;
+  const bottomPipe = this.add.container(this.scale.width + 100, bottomPipeY);
 
   // Pipe body
   const bottomPipeBody = this.add.image(0, bottomPipeHeight / 2, "pipe");
@@ -527,7 +518,7 @@ function restartGame() {
   pauseText.setVisible(false);
 
   // Reset bird
-  bird.setPosition(100, 300);
+  bird.setPosition(this.scale.width / 3, this.scale.height / 2);
   bird.setVelocity(0, 0);
   bird.body.allowGravity = false;
   bird.setAngle(0);
@@ -613,7 +604,7 @@ function update() {
   });
 
   // Check if bird fell off screen
-  if (bird.y > 600) {
+  if (bird.y > this.scale.height) {
     endGame.call(this);
   }
 }
