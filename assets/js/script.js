@@ -10,13 +10,20 @@ const config = {
     groundHeight: 80
 };
 
+const pauseBtn = {
+    x: 10,
+    y: 10,
+    width: 40,
+    height: 40
+};
+
 // --- State ---
 let canvas, ctx;
 let width, height;
 let frames = 0;
 let score = 0;
 let highScore = localStorage.getItem("flappyHighScore") || 0;
-let gameState = 'START'; // START, PLAYING, GAMEOVER
+let gameState = 'START'; // START, PLAYING, GAMEOVER, PAUSED
 let lastTime = 0;
 let pipes = [];
 let bird;
@@ -245,15 +252,38 @@ function init() {
     window.addEventListener('keydown', (e) => {
         if (e.code === 'Space') handleInput();
         if (e.code === 'KeyP') togglePause();
+        if (e.code === 'Enter') {
+            if (gameState === 'PLAYING') togglePause();
+            else handleInput();
+        }
     });
     
-    canvas.addEventListener('mousedown', handleInput);
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        handleClick(x, y);
+    });
+    
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault(); // Prevent scrolling
-        handleInput();
+        const rect = canvas.getBoundingClientRect();
+        const x = e.touches[0].clientX - rect.left;
+        const y = e.touches[0].clientY - rect.top;
+        handleClick(x, y);
     }, { passive: false });
 
     loop();
+}
+
+function handleClick(x, y) {
+    // Check if clicked on pause button
+    if (x >= pauseBtn.x && x <= pauseBtn.x + pauseBtn.width &&
+        y >= pauseBtn.y && y <= pauseBtn.y + pauseBtn.height) {
+        togglePause();
+    } else {
+        handleInput();
+    }
 }
 
 function handleInput() {
@@ -262,8 +292,20 @@ function handleInput() {
         bird.flap();
     } else if (gameState === 'PLAYING') {
         bird.flap();
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        bird.flap(); // Resume and flap? Or just resume? Let's flap to be consistent with user request "The game should then start again by pressing the "enter", "space" or "mouse left click"" - usually implies action.
     } else if (gameState === 'GAMEOVER') {
         resetGame();
+    }
+}
+
+function togglePause() {
+    if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        // bird.flap(); // Optional: flap on resume from toggle? Maybe not if just unpausing via P/Enter
     }
 }
 
@@ -387,6 +429,34 @@ function drawUI() {
         drawText('GAME OVER', height/2 - 20, 50, '#FF0000');
         drawText(`Score: ${score}`, height/2 + 40, 30);
         drawText('Click to Restart', height/2 + 90, 20);
+    } else if (gameState === 'PAUSED') {
+        drawText('PAUSED', height/2, 50);
+    }
+    
+    drawPauseButton();
+}
+
+function drawPauseButton() {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+
+    if (gameState === 'PAUSED') {
+        // Draw Play Icon (Triangle)
+        ctx.beginPath();
+        ctx.moveTo(pauseBtn.x + 10, pauseBtn.y + 10);
+        ctx.lineTo(pauseBtn.x + 35, pauseBtn.y + 20);
+        ctx.lineTo(pauseBtn.x + 10, pauseBtn.y + 30);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    } else {
+        // Draw Pause Icon (Two Bars)
+        ctx.fillRect(pauseBtn.x + 8, pauseBtn.y + 8, 8, 24);
+        ctx.strokeRect(pauseBtn.x + 8, pauseBtn.y + 8, 8, 24);
+        
+        ctx.fillRect(pauseBtn.x + 24, pauseBtn.y + 8, 8, 24);
+        ctx.strokeRect(pauseBtn.x + 24, pauseBtn.y + 8, 8, 24);
     }
 }
 
@@ -434,16 +504,20 @@ function loop(timestamp) {
         }
         
         checkCollisions();
+
+        drawGround();
+    
+        bird.update();
+        bird.draw();
         
     } else {
-        // Draw static pipes if waiting/gameover
+        // Draw static pipes if waiting/gameover/paused
         pipes.forEach(p => p.draw());
+        drawGround();
+        bird.draw();
+        if (gameState !== 'PAUSED') bird.update(); // Only update bird animation if not paused (though START has animation)
+        if (gameState === 'START') bird.update();
     }
-
-    drawGround();
-    
-    bird.update();
-    bird.draw();
     
     drawUI();
 
