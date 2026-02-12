@@ -22,7 +22,6 @@ let canvas, ctx;
 let width, height;
 let frames = 0;
 let score = 0;
-let highScore = localStorage.getItem("flappyHighScore") || 0;
 let gameState = 'START'; // START, PLAYING, GAMEOVER, PAUSED
 let lastTime = 0;
 let pipes = [];
@@ -234,7 +233,6 @@ function init() {
     
     width = canvas.width;
     height = canvas.height;
-
     createAssets();
     
     bird = new Bird();
@@ -245,7 +243,7 @@ function init() {
         canvas.height = window.innerHeight;
         width = canvas.width;
         height = canvas.height;
-        bird.x = width / 3; // Keep bird projected
+        bird.x = width / 3;
     });
 
     // Input
@@ -262,28 +260,32 @@ function init() {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        handleClick(x, y);
+        
+        // Check if clicked on pause button
+        if (x >= pauseBtn.x && x <= pauseBtn.x + pauseBtn.width &&
+            y >= pauseBtn.y && y <= pauseBtn.y + pauseBtn.height) {
+            togglePause();
+        } else {
+            handleInput();
+        }
     });
     
     canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // Prevent scrolling
+        e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         const x = e.touches[0].clientX - rect.left;
         const y = e.touches[0].clientY - rect.top;
-        handleClick(x, y);
+        
+        // Check if clicked on pause button
+        if (x >= pauseBtn.x && x <= pauseBtn.x + pauseBtn.width &&
+            y >= pauseBtn.y && y <= pauseBtn.y + pauseBtn.height) {
+            togglePause();
+        } else {
+            handleInput();
+        }
     }, { passive: false });
 
     loop();
-}
-
-function handleClick(x, y) {
-    // Check if clicked on pause button
-    if (x >= pauseBtn.x && x <= pauseBtn.x + pauseBtn.width &&
-        y >= pauseBtn.y && y <= pauseBtn.y + pauseBtn.height) {
-        togglePause();
-    } else {
-        handleInput();
-    }
 }
 
 function handleInput() {
@@ -294,7 +296,7 @@ function handleInput() {
         bird.flap();
     } else if (gameState === 'PAUSED') {
         gameState = 'PLAYING';
-        bird.flap(); // Resume and flap? Or just resume? Let's flap to be consistent with user request "The game should then start again by pressing the "enter", "space" or "mouse left click"" - usually implies action.
+        bird.flap();
     } else if (gameState === 'GAMEOVER') {
         resetGame();
     }
@@ -319,10 +321,6 @@ function resetGame() {
 
 function gameOver() {
     gameState = 'GAMEOVER';
-    if (score > highScore) {
-        highScore = score;
-        localStorage.setItem("flappyHighScore", highScore);
-    }
     // Shake effect
     canvas.style.transform = 'translate(5px, 5px)';
     setTimeout(() => canvas.style.transform = 'translate(-5px, -5px)', 50);
@@ -424,7 +422,6 @@ function drawUI() {
     // Texts based on state
     if (gameState === 'START') {
         drawText('Click or Space to Start', height/2 + 50, 30);
-        drawText(`Best: ${highScore}`, height/2 + 90, 20);
     } else if (gameState === 'GAMEOVER') {
         drawText('GAME OVER', height/2 - 20, 50, '#FF0000');
         drawText(`Score: ${score}`, height/2 + 40, 30);
